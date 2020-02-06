@@ -49,12 +49,19 @@ extern "C" {
 #include <string.h> 
 #include <math.h>
 #include <algorithm>    // std::min
+#include <iostream>
 
 #include <CmdMessenger.h>
 
 #define _CMDMESSENGER_VERSION 3_6 // software version of this library
 
-#define BYTEAVAILABLE(comms) (comms->end - comms->cur)
+int getStreamSize(__DEVICESTREAMTYPE *comms) {
+	comms->seekg(0, std::ios::end);
+	int size = comms->tellg();
+	comms->seekg(0, std::ios::beg);
+	return size;
+} 
+
 #include <chrono>
 #define millis() (std::chrono::system_clock::now())
 
@@ -133,13 +140,14 @@ void CmdMessenger::attach(CmdMsgByte msgId, messengerCallbackFunction newFunctio
  */
 void CmdMessenger::feedinSerialData()
 {
-	while (!pauseProcessing && BYTEAVAILABLE(comms))
+	while (!pauseProcessing && getStreamSize(comms))
 	{
 		// The Stream class has a readBytes() function that reads many bytes at once. On Teensy 2.0 and 3.0, readBytes() is optimized.
 		// Benchmarks about the incredible difference it makes: http://www.pjrc.com/teensy/benchmark_usb_serial_receive.html
 
-		size_t bytesAvailable = std::min(BYTEAVAILABLE(comms), MAXSTREAMBUFFERSIZE);
+		size_t bytesAvailable = std::min(getStreamSize(comms), MAXSTREAMBUFFERSIZE);
 		comms->read(streamBuffer, bytesAvailable);
+		printf("nb byte %d\n", bytesAvailable);
 		printf(streamBuffer);
 		// Process the bytes in the stream buffer, and handles dispatches callbacks, if commands are received
 		for (size_t byteNo = 0; byteNo < bytesAvailable; byteNo++)
@@ -152,6 +160,7 @@ void CmdMessenger::feedinSerialData()
 				handleMessage();
 			}
 		}
+		break;
 	}
 }
 
@@ -213,7 +222,7 @@ bool CmdMessenger::blockedTillReply(unsigned int timeout, CmdMsgByte ackCmdId)
  */
 bool CmdMessenger::checkForAck(CmdMsgByte ackCommand)
 {
-	while (BYTEAVAILABLE(comms)) {
+	while (getStreamSize(comms)) {
 		//Processes a CmdMsgByte and determines if an acknowlegde has come in
 		int messageState = processLine(comms->get());
 		if (messageState == kEndOfMessage) {
@@ -288,7 +297,7 @@ void CmdMessenger::sendCmdStart(CmdMsgByte cmdId)
 	if (!startCommand) {
 		startCommand = true;
 		pauseProcessing = true;
-		*comms << cmdId;
+		*comms << (int) cmdId ;
 	}
 }
 
