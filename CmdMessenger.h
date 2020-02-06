@@ -85,7 +85,7 @@ protected:
 	char *last;                       // Pointer to previous buffer position
 	char prevChar;                    // Previous char (needed for unescaping)
 	__DEVICESTREAMTYPE *comms;                    // input data stream
-	__DEVICESTREAMTYPE *commsout;                 // input data stream
+	__DEVICESTREAMTYPE *commsout;                 // output data stream
 
 	char command_separator;           // Character indicating end of command (default: ';')
 	char field_separator;				// Character indicating end of argument (default: ',')
