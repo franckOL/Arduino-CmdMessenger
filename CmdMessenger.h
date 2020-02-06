@@ -85,7 +85,7 @@ protected:
 	char *last;                       // Pointer to previous buffer position
 	char prevChar;                    // Previous char (needed for unescaping)
 	__DEVICESTREAMTYPE *comms;                    // input data stream
-	__DEVICESTREAMTYPE *commsout                  // input data stream
+	__DEVICESTREAMTYPE *commsout;                 // input data stream
 
 	char command_separator;           // Character indicating end of command (default: ';')
 	char field_separator;				// Character indicating end of argument (default: ',')
@@ -171,7 +171,7 @@ public:
 
 	// **** Initialization ****
 
-	CmdMessenger(__DEVICESTREAMTYPE & comms, __DEVICESTREAMTYPE & commsout
+	CmdMessenger(__DEVICESTREAMTYPE & comms, __DEVICESTREAMTYPE & commsout,
 		const char fld_separator = ',',
 		const char cmd_separator = ';',
 		const char esc_character = '/');
@@ -238,7 +238,7 @@ public:
 	template < class T > void sendCmdArg(T arg)
 	{
         if (startCommand) {
-            *comms << field_separator << arg;
+            *commsout << field_separator << arg;
 		}
 
 	}
@@ -251,8 +251,8 @@ public:
 	template < class T > void sendCmdArg(T arg, unsigned int n)
 	{
 		if (startCommand) {
-			*comms<< field_separator;
-			*comms << arg;
+			*commsout << field_separator;
+			*commsout << arg;
 			// comms->print(arg, n); // TODO: Precision not used
 		}
 	}
@@ -270,7 +270,7 @@ public:
 	template < class T > void sendCmdBinArg(T arg)
 	{
 		if (startCommand) {
-			*comms << field_separator;
+			*commsout << field_separator;
 			writeBin(arg);
 		}
 	}

@@ -56,9 +56,10 @@ extern "C" {
 #define _CMDMESSENGER_VERSION 3_6 // software version of this library
 
 int getStreamSize(__DEVICESTREAMTYPE *comms) {
+	int currentpos = comms->cur;
 	comms->seekg(0, std::ios::end);
 	int size = comms->tellg();
-	comms->seekg(0, std::ios::beg);
+	comms->seekg(currentpos-1, std::ios::beg);
 	return size;
 } 
 
@@ -141,23 +142,25 @@ void CmdMessenger::attach(CmdMsgByte msgId, messengerCallbackFunction newFunctio
  */
 void CmdMessenger::feedinSerialData()
 {
-	while (!pauseProcessing && getStreamSize(comms))
+	while (!pauseProcessing && getStreamSize(comms) > 0)
 	{
 		// The Stream class has a readBytes() function that reads many bytes at once. On Teensy 2.0 and 3.0, readBytes() is optimized.
 		// Benchmarks about the incredible difference it makes: http://www.pjrc.com/teensy/benchmark_usb_serial_receive.html
 
 		size_t bytesAvailable = std::min(getStreamSize(comms), MAXSTREAMBUFFERSIZE);
 		comms->read(streamBuffer, bytesAvailable);
-		printf("nb byte %d\n", bytesAvailable);
-		printf(streamBuffer);
+		// printf("nb byte %d\n", bytesAvailable);
+		// printf("  strea %s\n", streamBuffer);
 		// Process the bytes in the stream buffer, and handles dispatches callbacks, if commands are received
 		for (size_t byteNo = 0; byteNo < bytesAvailable; byteNo++)
 		{
+			// printf( "byteNo %d : %c\n", byteNo, streamBuffer[byteNo]); 
 			int messageState = processLine(streamBuffer[byteNo]);
 
 			// If waiting for acknowledge command
 			if (messageState == kEndOfMessage)
 			{
+				// printf( "End of cmd at %d\n", byteNo); 
 				handleMessage();
 			}
 		}
@@ -298,7 +301,7 @@ void CmdMessenger::sendCmdStart(CmdMsgByte cmdId)
 	if (!startCommand) {
 		startCommand = true;
 		pauseProcessing = true;
-		*comms << (int) cmdId ;
+		*commsout << (int) cmdId ;
 	}
 }
 
@@ -308,7 +311,7 @@ void CmdMessenger::sendCmdStart(CmdMsgByte cmdId)
 void CmdMessenger::sendCmdEscArg(char* arg)
 {
 	if (startCommand) {
-		*comms << field_separator;
+		*commsout << field_separator;
 		printEsc(arg);
 	}
 }
@@ -327,8 +330,8 @@ void CmdMessenger::sendCmdfArg(char *fmt, ...)
 		vsnprintf(msg, maxMessageSize, fmt, args);
 		va_end(args);
 
-		*comms << field_separator;
-		*comms << msg;
+		*commsout << field_separator;
+		*commsout << msg;
 	}
 }
 
@@ -340,7 +343,7 @@ void CmdMessenger::sendCmdSciArg(double arg, unsigned int n)
 {
 	if (startCommand)
 	{
-		*comms << field_separator;
+		*commsout << field_separator;
 		printSci(arg, n);
 	}
 }
@@ -352,9 +355,9 @@ bool CmdMessenger::sendCmdEnd(bool reqAc, CmdMsgByte ackCmdId, unsigned int time
 {
 	bool ackReply = false;
 	if (startCommand) {
-		*comms << command_separator;
+		*commsout << command_separator;
 		if (print_newlines)
-			*comms << "\r\n"; // should append BOTH \r\n
+			*commsout << "\r\n"; // should append BOTH \r\n
 		if (reqAc) {
 			ackReply = blockedTillReply(timeout, ackCmdId);
 		}
@@ -634,9 +637,9 @@ void CmdMessenger::printEsc(char *str)
 void CmdMessenger::printEsc(char str)
 {
 	if (str == field_separator || str == command_separator || str == escape_character || str == '\0') {
-		*comms << escape_character;
+		*commsout << escape_character;
 	}
-	*comms << str;
+	*commsout << str;
 }
 
 /**
@@ -647,20 +650,20 @@ void CmdMessenger::printSci(double f, unsigned int digits)
 	// handle sign
 	if (f < 0.0)
 	{
-		*comms << '-';
+		*commsout << '-';
 		f = -f;
 	}
 
 	// handle infinite values
 	if (isinf(f))
 	{
-		*comms << "INF";
+		*commsout << "INF";
 		return;
 	}
 	// handle Not a Number
 	if (isnan(f))
 	{
-		*comms << "NaN";
+		*commsout << "NaN";
 		return;
 	}
 
@@ -693,5 +696,5 @@ void CmdMessenger::printSci(double f, unsigned int digits)
 	sprintf(format, "%%ld.%%0%dldE%%+d", digits);
 	char output[16];
 	sprintf(output, format, whole, part, exponent);
-	*comms << output;
+	*commsout << output;
 }
