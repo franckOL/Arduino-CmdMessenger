@@ -46,23 +46,17 @@ extern "C" {
 #include <stdarg.h>
 }
 #include <stdio.h>
+#include <string.h> 
+#include <math.h>
+#include <algorithm>    // std::min
+
 #include <CmdMessenger.h>
 
 #define _CMDMESSENGER_VERSION 3_6 // software version of this library
 
-#if defined(__MBED__) ||  defined(MBED_STREAM_H)
-#define BYTEAVAILLABLE(comms) comms->readable()
-#define READONECHAR(comms) comms->getc()
-#define PRINTONECHAR(comms,c) comms->putc(c)
-#define PRINTSTRING(comms,s) comms->puts(s)
-#define millis() (us_ticker_read()/1000)
-#endif
-#if defined(ARDUINO) && !defined(MBED_STREAM_H)
-#define BYTEAVAILLABLE(comms) comms->available()
-#define READONECHAR(comms) comms->read()
-#define PRINTONECHAR(comms,c) comms->print(c)
-#define PRINTSTRING(comms,s) comms->print(s)
-#endif
+#define BYTEAVAILABLE(comms) (comms->end - comms->cur)
+#include <chrono>
+#define millis() (std::chrono::system_clock::now())
 
 // **** Initialization ****
 
@@ -139,14 +133,14 @@ void CmdMessenger::attach(CmdMsgByte msgId, messengerCallbackFunction newFunctio
  */
 void CmdMessenger::feedinSerialData()
 {
-	while (!pauseProcessing && comms->available())
+	while (!pauseProcessing && BYTEAVAILABLE(comms))
 	{
 		// The Stream class has a readBytes() function that reads many bytes at once. On Teensy 2.0 and 3.0, readBytes() is optimized.
 		// Benchmarks about the incredible difference it makes: http://www.pjrc.com/teensy/benchmark_usb_serial_receive.html
 
-		size_t bytesAvailable = min(comms->available(), MAXSTREAMBUFFERSIZE);
-		comms->readBytes(streamBuffer, bytesAvailable);
-
+		size_t bytesAvailable = std::min(BYTEAVAILABLE(comms), MAXSTREAMBUFFERSIZE);
+		comms->read(streamBuffer, bytesAvailable);
+		printf(streamBuffer);
 		// Process the bytes in the stream buffer, and handles dispatches callbacks, if commands are received
 		for (size_t byteNo = 0; byteNo < bytesAvailable; byteNo++)
 		{
@@ -204,10 +198,10 @@ void CmdMessenger::handleMessage()
  */
 bool CmdMessenger::blockedTillReply(unsigned int timeout, CmdMsgByte ackCmdId)
 {
-	unsigned long time = millis();
-	unsigned long start = time;
+	auto time = millis();
+	auto start = time;
 	bool receivedAck = false;
-	while ((time - start) < timeout && !receivedAck) {
+	while (std::chrono::duration_cast<std::chrono::milliseconds>(time - start).count() < timeout && !receivedAck) {
 		time = millis();
 		receivedAck = checkForAck(ackCmdId);
 	}
@@ -219,9 +213,9 @@ bool CmdMessenger::blockedTillReply(unsigned int timeout, CmdMsgByte ackCmdId)
  */
 bool CmdMessenger::checkForAck(CmdMsgByte ackCommand)
 {
-	while (comms->available()) {
+	while (BYTEAVAILABLE(comms)) {
 		//Processes a CmdMsgByte and determines if an acknowlegde has come in
-		int messageState = processLine(comms->read());
+		int messageState = processLine(comms->get());
 		if (messageState == kEndOfMessage) {
 			int id = readInt16Arg();
 			if (ackCommand == id && ArgOk) {
@@ -294,7 +288,7 @@ void CmdMessenger::sendCmdStart(CmdMsgByte cmdId)
 	if (!startCommand) {
 		startCommand = true;
 		pauseProcessing = true;
-		comms->print(cmdId);
+		*comms << cmdId;
 	}
 }
 
@@ -304,7 +298,7 @@ void CmdMessenger::sendCmdStart(CmdMsgByte cmdId)
 void CmdMessenger::sendCmdEscArg(char* arg)
 {
 	if (startCommand) {
-		comms->print(field_separator);
+		*comms << field_separator;
 		printEsc(arg);
 	}
 }
@@ -323,8 +317,8 @@ void CmdMessenger::sendCmdfArg(char *fmt, ...)
 		vsnprintf(msg, maxMessageSize, fmt, args);
 		va_end(args);
 
-		comms->print(field_separator);
-		comms->print(msg);
+		*comms << field_separator;
+		*comms << msg;
 	}
 }
 
@@ -336,7 +330,7 @@ void CmdMessenger::sendCmdSciArg(double arg, unsigned int n)
 {
 	if (startCommand)
 	{
-		comms->print(field_separator);
+		*comms << field_separator;
 		printSci(arg, n);
 	}
 }
@@ -348,9 +342,9 @@ bool CmdMessenger::sendCmdEnd(bool reqAc, CmdMsgByte ackCmdId, unsigned int time
 {
 	bool ackReply = false;
 	if (startCommand) {
-		comms->print(command_separator);
+		*comms << command_separator;
 		if (print_newlines)
-			comms->println(); // should append BOTH \r\n
+			*comms << "\r\n"; // should append BOTH \r\n
 		if (reqAc) {
 			ackReply = blockedTillReply(timeout, ackCmdId);
 		}
@@ -503,7 +497,7 @@ char* CmdMessenger::readStringArg()
 		return current;
 	}
 	ArgOk = false;
-	return '\0';
+	return NULL;
 }
 
 /**
@@ -515,7 +509,8 @@ void CmdMessenger::copyStringArg(char *string, uint8_t size)
 	if (next()) {
 		dumped = true;
 		ArgOk = true;
-		strlcpy(string, current, size);
+		// strlcpy(string, current, size); // missing function
+		strncpy(string, current, size);
 	}
 	else {
 		ArgOk = false;
@@ -629,9 +624,9 @@ void CmdMessenger::printEsc(char *str)
 void CmdMessenger::printEsc(char str)
 {
 	if (str == field_separator || str == command_separator || str == escape_character || str == '\0') {
-		comms->print(escape_character);
+		*comms << escape_character;
 	}
-	comms->print(str);
+	*comms << str;
 }
 
 /**
@@ -642,20 +637,20 @@ void CmdMessenger::printSci(double f, unsigned int digits)
 	// handle sign
 	if (f < 0.0)
 	{
-		Serial.print('-');
+		*comms << '-';
 		f = -f;
 	}
 
 	// handle infinite values
 	if (isinf(f))
 	{
-		Serial.print("INF");
+		*comms << "INF";
 		return;
 	}
 	// handle Not a Number
 	if (isnan(f))
 	{
-		Serial.print("NaN");
+		*comms << "NaN";
 		return;
 	}
 
@@ -688,5 +683,5 @@ void CmdMessenger::printSci(double f, unsigned int digits)
 	sprintf(format, "%%ld.%%0%dldE%%+d", digits);
 	char output[16];
 	sprintf(output, format, whole, part, exponent);
-	comms->print(output);
+	*comms << output;
 }

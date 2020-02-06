@@ -25,30 +25,20 @@
 #ifndef CmdMessenger_h
 #define CmdMessenger_h
 
-#include <inttypes.h>
-#if ARDUINO >= 100
-#include <Arduino.h> 
-#else
-#include <WProgram.h> 
-#endif
+// unint8 type etc...
+#include <cstdint>
+
 
 #if defined(__MBED__)
 #include <mbed.h>
 #endif
 
-#if defined(MBED_STREAM_H) 
-/** Mbed platform compatibility and mbed like Stream**/
-/** #include <Serial.h> */
-
-#define __DEVICESTREAMTYPE UARTClass
+#include <sstream>
+#define __DEVICESTREAMTYPE std::stringstream
 #define CmdMsgByte uint8_t
-#endif
-#if defined(ARDUINO) && !defined(MBED_STREAM_H)
-#define __DEVICESTREAMTYPE Stream
-#define CmdMsgByte byte
-#endif
 
-//#include "Stream.h"
+
+// #include "Stream.h"
 
 extern "C"
 {
@@ -246,37 +236,12 @@ public:
 	template < class T > void sendCmdArg(T arg)
 	{
         if (startCommand) {
-#if !defined(MBED) // Arduino and ReadBear OK
-            comms->print(field_separator);
-            comms->print(arg);
-#else
-            comms->putc(field_separator);
-            comms->puts(arg);
-#endif
+            *comms << field_separator << arg;
 		}
 
 	}
 
-#if defined(MBED)
-    void sendCmdArg(bool arg) {
-            comms->putc(field_separator);
-            comms->printf("%i", arg);
-    }
-    void sendCmdArg(float arg) {
-            comms->putc(field_separator);
-            comms->printf("%f", arg);
-    }
-    void sendCmdArg(long arg) {
-            comms->putc(field_separator);
-            comms->printf("%i", arg);
-    }
-    void sendCmdArg(int arg) {
-            comms->putc(field_separator);
-            comms->printf("%i", arg);
-    }
-#endif
 
-#if !defined(MBED_STREAM_H)
 	/**
 	 * Send a single argument as string with custom accuracy
 	 *  Note that this will only succeed if a sendCmdStart has been issued first
@@ -284,11 +249,11 @@ public:
 	template < class T > void sendCmdArg(T arg, unsigned int n)
 	{
 		if (startCommand) {
-			comms->print(field_separator);
-			comms->print(arg, n);
+			*comms<< field_separator;
+			*comms << arg;
+			// comms->print(arg, n); // TODO: Precision not used
 		}
 	}
-#endif
 
 	/**
 	 * Send double argument in scientific format.
@@ -296,7 +261,6 @@ public:
 	 */
 	void sendCmdSciArg(double arg, unsigned int n = 6);
 
-#if !defined(MBED_STREAM_H)
 	/**
 	 * Send a single argument in binary format
 	 *  Note that this will only succeed if a sendCmdStart has been issued first
@@ -304,11 +268,10 @@ public:
 	template < class T > void sendCmdBinArg(T arg)
 	{
 		if (startCommand) {
-			comms->print(field_separator);
+			*comms << field_separator;
 			writeBin(arg);
 		}
 	}
-#endif	
 
 	// **** Command receiving ****
 	bool readBoolArg();
