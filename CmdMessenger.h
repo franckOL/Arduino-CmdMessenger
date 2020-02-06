@@ -84,7 +84,8 @@ protected:
 	char *current;                    // Pointer to current buffer position
 	char *last;                       // Pointer to previous buffer position
 	char prevChar;                    // Previous char (needed for unescaping)
-	__DEVICESTREAMTYPE *comms;                    // Serial data stream
+	__DEVICESTREAMTYPE *comms;                    // input data stream
+	__DEVICESTREAMTYPE *commsout                  // input data stream
 
 	char command_separator;           // Character indicating end of command (default: ';')
 	char field_separator;				// Character indicating end of argument (default: ',')
@@ -96,7 +97,7 @@ protected:
 
 	// **** Initialize ****
 
-	void init(__DEVICESTREAMTYPE & comms, const char fld_separator, const char cmd_separator, const char esc_character);
+	void init(__DEVICESTREAMTYPE & comms, __DEVICESTREAMTYPE & commsout, const char fld_separator, const char cmd_separator, const char esc_character);
 	void reset();
 
 	// **** Command processing ****
@@ -170,7 +171,8 @@ public:
 
 	// **** Initialization ****
 
-	CmdMessenger(__DEVICESTREAMTYPE & comms, const char fld_separator = ',',
+	CmdMessenger(__DEVICESTREAMTYPE & comms, __DEVICESTREAMTYPE & commsout
+		const char fld_separator = ',',
 		const char cmd_separator = ';',
 		const char esc_character = '/');
 

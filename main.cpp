@@ -8,10 +8,11 @@ using namespace std;
 // Attach a new CmdMessenger object to the default Serial port (warning the name must be cmdMessenger)
 #include <sstream>
 
-stringstream channel;
+stringstream channelin;
+stringstream channelout;
 
 
-CmdMessenger cmdMessenger(channel);
+CmdMessenger cmdMessenger(channelin, channelout);
 
 
 /**
@@ -86,10 +87,10 @@ int main(int argc, char const *argv[]) {
     cout << "Starting..." << endl;
     
     setup();
-    channel << "2;" << "\r\n" << "2;" << endl;
-    channel.seekg(0, channel.beg);
-    cout << " First cmd : " << channel.str() <<  " (" << ")" << endl;
-    channel.seekg(0, channel.beg);
+    channelin << "2;" << "\r\n" << "2;" << endl;
+    channelin.seekg(0, channelin.beg);
+    cout << " First cmd : " << channelin.str() <<  " (" << ")" << endl;
+    channelin.seekg(0, channelin.beg);
     //while (true) {
         for (int i=0; i<3; i++) { 
         cmdMessenger.feedinSerialData();

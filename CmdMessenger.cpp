@@ -70,18 +70,19 @@ int getStreamSize(__DEVICESTREAMTYPE *comms) {
 /**
  * CmdMessenger constructor
  */
-CmdMessenger::CmdMessenger(__DEVICESTREAMTYPE &ccomms, const char fld_separator, const char cmd_separator, const char esc_character)
+CmdMessenger::CmdMessenger(__DEVICESTREAMTYPE &ccomms, __DEVICESTREAMTYPE &ccommsout, const char fld_separator, const char cmd_separator, const char esc_character)
 {
-	init(ccomms, fld_separator, cmd_separator, esc_character);
+	init(ccomms, ccommsout, fld_separator, cmd_separator, esc_character);
 }
 
 /**
  * Enables printing newline after a sent command
  */
-void CmdMessenger::init(__DEVICESTREAMTYPE &ccomms, const char fld_separator, const char cmd_separator, const char esc_character)
+void CmdMessenger::init(__DEVICESTREAMTYPE &ccomms, __DEVICESTREAMTYPE &ccommsout, const char fld_separator, const char cmd_separator, const char esc_character)
 {
 	default_callback = NULL;
 	comms = &ccomms;
+	commsout = &ccommsout;
 	print_newlines = false;
 	field_separator = fld_separator;
 	command_separator = cmd_separator;
