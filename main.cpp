@@ -73,10 +73,6 @@ class OutputManager : public CMOutputManager {
 } ;
 
 
-template <class T> OutputManager& operator<<(OutputManager &oMgr, T val) {
-    oMgr._channelout << val;
-    return oMgr;
-}
 
 OutputManager outputMgr(channelout);
 
@@ -176,7 +172,6 @@ void OnDHTStatus() {
 // They start at the address kSEND_CMDS_END defined ^^ above as 004
 messengerCallbackFunction messengerCallbacks[] =  {
   configurationCommandCallbackFunction, // Callbacks for configuration commande NYI
-  unknownCmd, // No call back for led
   DHTCallbackFunction,                  // Callbacks for DHT Device
 
   NULL   // Must keep that
