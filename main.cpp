@@ -3,7 +3,7 @@
 
 using namespace std;
 
-#include "CmdMessenger.h"
+#include "CmdMessenger.h" // This is template - must include all
 
 // Attach a new CmdMessenger object to the default Serial port (warning the name must be cmdMessenger)
 #include <sstream>
@@ -12,7 +12,79 @@ stringstream channelin;
 stringstream channelout;
 
 
-CmdMessenger cmdMessenger(channelin, channelout);
+int getStreamSize(stringstream *comms) {
+	int currentpos = comms->cur;
+	comms->seekg(0, std::ios::end);
+	int size = comms->tellg();
+	comms->seekg(currentpos-1, std::ios::beg);
+	return size;
+} 
+
+class InputManager : public CMInputManager {
+  public:
+    stringstream &_channelin;
+    InputManager(stringstream &channelin) : _channelin(channelin) {
+    }
+
+    int available() {
+      int currentpos = _channelin.cur;
+      _channelin.seekg(0, std::ios::end);
+      int size = _channelin.tellg();
+      _channelin.seekg(currentpos-1, std::ios::beg);
+      return size;
+    }
+
+    int get() {
+      return _channelin.get();
+    }  
+
+    void read(char * buffer, size_t& size) {
+      _channelin.read(buffer, size);
+    } 
+} ;
+
+InputManager inputMgr(channelin);
+
+class OutputManager : public CMOutputManager {
+  public:
+    stringstream &_channelout;
+    OutputManager(stringstream &channelout) : _channelout(channelout) {
+    }
+  	virtual void print(const char val)
+    {
+      _channelout << val;
+    }  
+  	virtual void print(const int val)
+    {
+      _channelout << val;
+    }  
+  	virtual void print(const float val)
+    {
+      _channelout << val;
+    }  
+  	virtual void print(const double val)
+    {
+      _channelout << val;
+    }  
+  	virtual void print(const char* val)
+    {
+      _channelout << val;
+    }
+} ;
+
+
+template <class T> OutputManager& operator<<(OutputManager &oMgr, T val) {
+    oMgr._channelout << val;
+    return oMgr;
+}
+
+OutputManager outputMgr(channelout);
+
+CmdMessenger cmdMessenger(inputMgr, outputMgr);
+
+
+#define StatusLedCommandList \
+  kLedCmd
 
 // This is the list of recognized commands. These can be commands that can either be sent or received. 
 // In order to receive, attach a callback function to these events
@@ -36,7 +108,6 @@ enum {
   kDeviceReady         , // Common Command to ready device
       // end of generic action
   configurationCommandlist, // Commands for configuration NYI
-  StatusLedCommandList,     // Commands for status led // Not used for nrf52
   DHTCommandList,           // Commands for DHT Device
 
 };
@@ -67,7 +138,7 @@ void unknownCmd() {
 
 
 // ------------------ S E T U P ----------------------------------------------
-
+// template class void CmdMessenger<InputManager, OutputManager>::attach(unsigned char, void (*)());
 void attach_callbacks(messengerCallbackFunction* callbacks) {
   int i = 0;
   int offset = kSEND_CMDS_END;

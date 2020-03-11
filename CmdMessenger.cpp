@@ -55,14 +55,6 @@ extern "C" {
 
 #define _CMDMESSENGER_VERSION 3_6 // software version of this library
 
-int getStreamSize(__DEVICESTREAMTYPE *comms) {
-	int currentpos = comms->cur;
-	comms->seekg(0, std::ios::end);
-	int size = comms->tellg();
-	comms->seekg(currentpos-1, std::ios::beg);
-	return size;
-} 
-
 #include <chrono>
 #define millis() (std::chrono::system_clock::now())
 
@@ -71,7 +63,7 @@ int getStreamSize(__DEVICESTREAMTYPE *comms) {
 /**
  * CmdMessenger constructor
  */
-CmdMessenger::CmdMessenger(__DEVICESTREAMTYPE &ccomms, __DEVICESTREAMTYPE &ccommsout, const char fld_separator, const char cmd_separator, const char esc_character)
+CmdMessenger::CmdMessenger(CMInputManager &ccomms, CMOutputManager &ccommsout, const char fld_separator, const char cmd_separator, const char esc_character)
 {
 	init(ccomms, ccommsout, fld_separator, cmd_separator, esc_character);
 }
@@ -79,7 +71,7 @@ CmdMessenger::CmdMessenger(__DEVICESTREAMTYPE &ccomms, __DEVICESTREAMTYPE &ccomm
 /**
  * Enables printing newline after a sent command
  */
-void CmdMessenger::init(__DEVICESTREAMTYPE &ccomms, __DEVICESTREAMTYPE &ccommsout, const char fld_separator, const char cmd_separator, const char esc_character)
+void CmdMessenger::init(CMInputManager &ccomms, CMOutputManager &ccommsout, const char fld_separator, const char cmd_separator, const char esc_character)
 {
 	default_callback = NULL;
 	comms = &ccomms;
@@ -142,12 +134,12 @@ void CmdMessenger::attach(CmdMsgByte msgId, messengerCallbackFunction newFunctio
  */
 void CmdMessenger::feedinSerialData()
 {
-	while (!pauseProcessing && getStreamSize(comms) > 0)
+	while (!pauseProcessing && comms->available() > 0)
 	{
 		// The Stream class has a readBytes() function that reads many bytes at once. On Teensy 2.0 and 3.0, readBytes() is optimized.
 		// Benchmarks about the incredible difference it makes: http://www.pjrc.com/teensy/benchmark_usb_serial_receive.html
 
-		size_t bytesAvailable = std::min(getStreamSize(comms), MAXSTREAMBUFFERSIZE);
+		size_t bytesAvailable = std::min(comms->available(), MAXSTREAMBUFFERSIZE);
 		comms->read(streamBuffer, bytesAvailable);
 		// printf("nb byte %d\n", bytesAvailable);
 		// printf("  strea %s\n", streamBuffer);
@@ -226,7 +218,7 @@ bool CmdMessenger::blockedTillReply(unsigned int timeout, CmdMsgByte ackCmdId)
  */
 bool CmdMessenger::checkForAck(CmdMsgByte ackCommand)
 {
-	while (getStreamSize(comms)) {
+	while (comms->available()) {
 		//Processes a CmdMsgByte and determines if an acknowlegde has come in
 		int messageState = processLine(comms->get());
 		if (messageState == kEndOfMessage) {

@@ -34,7 +34,7 @@
 #endif
 
 #include <sstream>
-#define __DEVICESTREAMTYPE std::stringstream
+
 #define CmdMsgByte uint8_t
 
 
@@ -62,6 +62,38 @@ enum
 #define white_space(c) ((c) == ' ' || (c) == '\t')
 #define valid_digit(c) ((c) >= '0' && (c) <= '9')
 
+class CMInputManager {
+  public:
+    virtual int available() =0;
+    virtual int get() =0;
+    virtual void read(char * buffer, size_t& size)=0;
+} ;
+
+
+class CMOutputManager {
+  public:
+  /**
+   * Output method for each type
+   */
+  	virtual void print(const char val)=0; 
+  	virtual void print(const int val)=0; 
+  	virtual void print(const float val)=0; 
+  	virtual void print(const double val)=0; 
+  	virtual void print(const char* val)=0; 
+
+  	template < class T > 
+  		friend CMOutputManager& operator<< (CMOutputManager& outMgr, const T p);
+};
+
+
+template < class T >
+	CMOutputManager& operator<< (CMOutputManager& outMgr, const T p)
+{
+    outMgr.print(p);
+    return outMgr;
+}
+
+
 class CmdMessenger
 {
 protected:
@@ -84,8 +116,8 @@ protected:
 	char *current;                    // Pointer to current buffer position
 	char *last;                       // Pointer to previous buffer position
 	char prevChar;                    // Previous char (needed for unescaping)
-	__DEVICESTREAMTYPE *comms;                    // input data stream
-	__DEVICESTREAMTYPE *commsout;                 // output data stream
+	CMInputManager *comms;            // input data stream
+	CMOutputManager *commsout;        // output data stream
 
 	char command_separator;           // Character indicating end of command (default: ';')
 	char field_separator;				// Character indicating end of argument (default: ',')
@@ -97,7 +129,7 @@ protected:
 
 	// **** Initialize ****
 
-	void init(__DEVICESTREAMTYPE & comms, __DEVICESTREAMTYPE & commsout, const char fld_separator, const char cmd_separator, const char esc_character);
+	void init(CMInputManager & comms, CMOutputManager & commsout, const char fld_separator, const char cmd_separator, const char esc_character);
 	void reset();
 
 	// **** Command processing ****
@@ -171,7 +203,7 @@ public:
 
 	// **** Initialization ****
 
-	CmdMessenger(__DEVICESTREAMTYPE & comms, __DEVICESTREAMTYPE & commsout,
+	CmdMessenger(CMInputManager & comms, CMOutputManager & commsout,
 		const char fld_separator = ',',
 		const char cmd_separator = ';',
 		const char esc_character = '/');

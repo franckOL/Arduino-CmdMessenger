@@ -6,7 +6,7 @@ BUILD_PATH = build
 BIN_PATH = $(BUILD_PATH)/bin
 
 # executable # 
-BIN_NAME = testCmdMessger
+BIN_NAME = testCmdMessager
 
 # extensions #
 SRC_EXT = cpp
