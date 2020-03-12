@@ -56,6 +56,9 @@ extern "C" {
 #if ! defined(ARDUINO) 
 #include <chrono>
 #define millis() (std::chrono::system_clock::now())
+#define CmdMessengerDiffTime(time, start) (std::chrono::duration_cast<std::chrono::milliseconds>(time - start).count())
+#else
+#define CmdMessengerDiffTime(time, start) (time - start)
 #endif
 
 // **** Initialization ****
@@ -208,7 +211,7 @@ bool CmdMessenger::blockedTillReply(unsigned int timeout, CmdMsgByte ackCmdId)
 	auto time = millis();
 	auto start = time;
 	bool receivedAck = false;
-	while (std::chrono::duration_cast<std::chrono::milliseconds>(time - start).count() < timeout && !receivedAck) {
+	while (CmdMessengerDiffTime(time,start) < timeout && !receivedAck) {
 		time = millis();
 		receivedAck = checkForAck(ackCmdId);
 	}
