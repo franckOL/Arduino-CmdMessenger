@@ -53,8 +53,10 @@ extern "C" {
 
 #define _CMDMESSENGER_VERSION 4_0 // software version of this library
 
+#if ! defined(ARDUINO) 
 #include <chrono>
 #define millis() (std::chrono::system_clock::now())
+#endif
 
 // **** Initialization ****
 
