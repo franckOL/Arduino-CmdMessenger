@@ -33,12 +33,8 @@
 #include <mbed.h>
 #endif
 
-#include <sstream>
-
 #define CmdMsgByte uint8_t
 
-
-// #include "Stream.h"
 
 extern "C"
 {
