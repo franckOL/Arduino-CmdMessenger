@@ -78,6 +78,7 @@ class CMOutputManager {
   	virtual void print(const double val)=0; 
   	virtual void print(const char* val)=0; 
 
+	virtual void sendFullCmd() = 0;
   	template < class T > 
   		friend CMOutputManager& operator<< (CMOutputManager& outMgr, const T p);
 };

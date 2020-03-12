@@ -12,14 +12,6 @@ stringstream channelin;
 stringstream channelout;
 
 
-int getStreamSize(stringstream *comms) {
-	int currentpos = comms->cur;
-	comms->seekg(0, std::ios::end);
-	int size = comms->tellg();
-	comms->seekg(currentpos-1, std::ios::beg);
-	return size;
-} 
-
 class InputManager : public CMInputManager {
   public:
     stringstream &_channelin;
@@ -70,6 +62,11 @@ class OutputManager : public CMOutputManager {
     {
       _channelout << val;
     }
+
+    virtual void sendFullCmd() {
+        cout << " ==>"  << _channelout.str() << endl;
+        _channelout.str(""); // consume all 
+    } 
 } ;
 
 
@@ -199,8 +196,6 @@ int main(int argc, char const *argv[]) {
         cin >> userInput;
         channelin.str(userInput);
         cmdMessenger.feedinSerialData();
-        cout << " ==>"  << channelout.str() << endl;
-        channelout.str(""); // consume all 
     } 
     cout << "End" << endl;
     return 0;

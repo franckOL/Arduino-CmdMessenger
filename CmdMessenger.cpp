@@ -352,6 +352,7 @@ bool CmdMessenger::sendCmdEnd(bool reqAc, CmdMsgByte ackCmdId, unsigned int time
 		*commsout << command_separator;
 		if (print_newlines)
 			*commsout << "\r\n"; // should append BOTH \r\n
+		commsout->sendFullCmd();
 		if (reqAc) {
 			ackReply = blockedTillReply(timeout, ackCmdId);
 		}
